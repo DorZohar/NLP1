@@ -9,9 +9,9 @@ if __name__ == '__main__':
     parser.add_argument('--lamb', type=float, default=0)
     args = parser.parse_args()
 
-    #vec = train.calc_weight_vector("train.wtag", lamb = args.lamb )
+    vec = train.calc_weight_vector("train.wtag", lamb = args.lamb )
 
-    vec = simple_vec
+    #vec = simple_vec
 
     vit = Viterbi(vec, [0, 3, 4])
     vit.evaluate("validation.wtag")
