@@ -37,13 +37,10 @@ def line_to_all_qs(words, tags, vec, families = [0, 3, 4], lamb = 0):
 def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
     total_sum = 0
     print("func enter", time.time() - start_time, vec[0:10])
-    dict_vec = {}
-    for i in range(0, len(vec)):
-        dict_vec[i] = vec[i]
 
     for line in lines:
         #print("start:", time.time() - start_time)
-        total_sum += line_to_all_qs(line[0], line[1], dict_vec, families, lamb)
+        total_sum += line_to_all_qs(line[0], line[1], vec, families, lamb)
         #print("end:", time.time() - start_time)
 
     print("func exit", time.time() - start_time, total_sum)
@@ -54,21 +51,15 @@ def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
 def jacobian(vec, lines, lamb = 0, families = [0, 3, 4]):
     print("jac enter", time.time() - start_time, vec[0:10])
 
-    jac_vec = [0] * len(vec)
-    dict_vec = {}
-    for i in range(0, len(vec)):
-        dict_vec[i] = vec[i]
+    jac_vec = np.zeros((len(vec),))
 
     for line in lines:
         #print("line", time.time() - start_time)
-        temp_jac = feature_jac_dispatch(families, dict_vec, line[0], line[1], lamb)
-        jac_vec = [a + b for a, b in zip(jac_vec, temp_jac)]
-
-    jac_vec = [-j for j in jac_vec]
+        jac_vec += feature_jac_dispatch(families, vec, line[0], line[1], lamb)
 
     print("jac exit", time.time() - start_time, jac_vec[0:10])
 
-    return np.array(jac_vec)
+    return -jac_vec
 
 
 def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
@@ -78,7 +69,7 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
     file.close()
 
     feat_num = get_vector_size(families)
-    initial_guess = [0] * feat_num
+    initial_guess = np.ones((feat_num,))
 
     lines = [line.split(" ") for line in content.split("\n")]
     lines_as_tuples = []
@@ -91,17 +82,6 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
     print(res)
 
     return res
-
-
-def q_for_inference(is_basic, tag_2, tag_1, words, index):
-    if is_basic:
-        families = [0, 3, 4]
-        vec = simple_vec
-    else:
-        families = list(range(0, num_of_features))
-        vec = advanced_vec
-
-    return q(vec, tag_2, tag_1, words, index, families)
 
 
 if __name__ == '__main__':

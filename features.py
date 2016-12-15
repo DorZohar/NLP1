@@ -4,6 +4,8 @@ import math
 import threading
 from multiprocessing.pool import Pool
 import numpy as np
+import time
+
 from vocabulary import feature_vec_by_family, all_tags
 from opt_results1 import simple_vec
 
@@ -55,9 +57,7 @@ def get_vector_size(families):
 def get_vector_product(vec, families, tag_2, tag_1, words, index, tag):
 
     active_features = feature_dispatch(families, tag_2, tag_1, words, index, tag)
-    ret_sum = 0
-    for feat in active_features:
-        ret_sum += vec[feat]
+    ret_sum = np.sum(vec[active_features])
 
     return ret_sum
 
@@ -71,36 +71,44 @@ def feature_dispatch(families, tag_2, tag_1, words, index, tag):
 
     return active_features
 
+
 def feature_family(family, tag_2, tag_1, words, index, tag):
 
     keys = feature_functor[family](tag_2, tag_1, words, index, tag)
-    return [feature_vec_by_family[family][key] for key in keys if key in feature_vec_by_family[family]]
+    ret_list = []
+    for key in keys:
+        try:
+            ret_list.append(feature_vec_by_family[family][key])
+        except:
+            pass
+    return ret_list
 
 
 def feature_jac_dispatch(families, vec, words, tags, lamb = 0):
 
-    active_features = []
+    active_features = np.array([])
     for family in families:
-        active_features += feature_family_jac(family, vec, words, tags, families)
+        cur_array = feature_family_jac(family, vec, words, tags, families)
+        active_features = np.concatenate((active_features, cur_array))
 
-    active_features = [a - lamb * b for a, b in zip(active_features, vec)]
+    active_features -= lamb * vec
 
     return active_features
 
 
 def feature_family_jac(family, vec, words, tags, families):
 
-    jacobian_dict = {i: 0 for i in range(0, len(feature_vec_by_family[family]))}
-    jacobian_vec = [0] * len(feature_vec_by_family[family])
-
+    jacobian_vec = np.zeros((len(feature_vec_by_family[family]),))
+    start_time = time.time()
     for i in range(2, len(words)):
-        prob = math.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]])
+        prob = np.exp([q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]]])
         for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
-            if key in feature_vec_by_family[family]:
-                jacobian_dict[feature_vec_by_family[family][key]] += 1 - prob
+            try:
+                jacobian_vec[feature_vec_by_family[family][key]] += 1 - prob[0]
+            except:
+                pass
 
-    for i in range(0, len(feature_vec_by_family[family])):
-        jacobian_vec[i] = jacobian_dict[i]
+    print("jac", time.time() - start_time)
 
     return jacobian_vec
 
@@ -114,21 +122,6 @@ def q(vec, tag_2, tag_1, words, index, families = [0, 3, 4]):
     tags_sum = np.log(np.sum(np.exp(return_vec)))
 
     return return_vec - tags_sum
-
-
-def q_for_inference(is_basic, tag_2, tag_1, words, index, is_validation = False):
-
-    if is_validation:
-        vec = cross_val_vec
-    else:
-        if is_basic:
-            families = [0, 3, 4]
-            vec = simple_vec
-        else:
-            families = list(range(0, num_of_features))
-            vec = advanced_vec
-
-    return q(vec, tag_2, tag_1, words, index, families)
 
 
 
