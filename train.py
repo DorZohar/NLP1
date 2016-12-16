@@ -69,7 +69,7 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
     file.close()
 
     feat_num = get_vector_size(families)
-    initial_guess = np.ones((feat_num,))
+    initial_guess = np.zeros((feat_num,))
 
     lines = [line.split(" ") for line in content.split("\n")]
     lines_as_tuples = []

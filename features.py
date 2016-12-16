@@ -57,17 +57,20 @@ def get_vector_size(families):
 def get_vector_product(vec, families, tag_2, tag_1, words, index, tag):
 
     active_features = feature_dispatch(families, tag_2, tag_1, words, index, tag)
-    ret_sum = np.sum(vec[active_features])
+    if active_features.size > 0:
+        return np.sum(vec[active_features])
 
-    return ret_sum
+    return 0
 
 
 def feature_dispatch(families, tag_2, tag_1, words, index, tag):
 
-    active_features = []
+    active_features = np.array([], dtype=np.int)
     for family in families:
         base_index = get_base_index(family, families)
-        active_features += [base_index + offset for offset in feature_family(family, tag_2, tag_1, words, index, tag)]
+        offsets = feature_family(family, tag_2, tag_1, words, index, tag)
+        if offsets.size > 0:
+            active_features = np.concatenate((active_features, offsets + base_index))
 
     return active_features
 
@@ -75,10 +78,10 @@ def feature_dispatch(families, tag_2, tag_1, words, index, tag):
 def feature_family(family, tag_2, tag_1, words, index, tag):
 
     keys = feature_functor[family](tag_2, tag_1, words, index, tag)
-    ret_list = []
+    ret_list = np.array([], dtype=np.int)
     for key in keys:
         try:
-            ret_list.append(feature_vec_by_family[family][key])
+            ret_list = np.append(ret_list, feature_vec_by_family[family][key])
         except:
             pass
     return ret_list
@@ -99,7 +102,7 @@ def feature_jac_dispatch(families, vec, words, tags, lamb = 0):
 def feature_family_jac(family, vec, words, tags, families):
 
     jacobian_vec = np.zeros((len(feature_vec_by_family[family]),))
-    start_time = time.time()
+    #start_time = time.time()
     for i in range(2, len(words)):
         prob = np.exp([q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]]])
         for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
@@ -108,7 +111,7 @@ def feature_family_jac(family, vec, words, tags, families):
             except:
                 pass
 
-    print("jac", time.time() - start_time)
+    #print("jac", time.time() - start_time)
 
     return jacobian_vec
 

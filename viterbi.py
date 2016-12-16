@@ -3,12 +3,13 @@ from features import q
 from opt_results1 import simple_vec
 from vocabulary import all_tags, all_tags_by_index
 import numpy as np
+import time
 
 class Viterbi:
     def __init__(self, vec, families):
         self.possible_tags = []
         self.q = q
-        self.vec = vec
+        self.vec = np.array(vec)
         self.families = families
 
     def parse_training_file(self, path):
@@ -69,7 +70,7 @@ class Viterbi:
 
         # find all other tags
         for k in range(n-2,0,-1):
-            print(k, tags[k+1], tags[k+2])
+            #print(k, tags[k+1], tags[k+2])
             tags[k] = bp[k+2][tags[k+1]][tags[k+2]]
 
         tag_names = [all_tags_by_index[tag] for tag in tags]
