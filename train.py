@@ -58,6 +58,8 @@ def jacobian(vec, lines, lamb = 0, families = [0, 3, 4]):
         #print("line", time.time() - start_time)
         jac_vec += feature_jac_dispatch(families, vec, line[0], line[1], lamb)
 
+    jac_vec -= lamb * jac_vec
+
     print("jac exit", time.time() - start_time, jac_vec[0:10])
 
     return -jac_vec

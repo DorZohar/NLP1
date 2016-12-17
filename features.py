@@ -87,8 +87,6 @@ def feature_jac_dispatch(families, vec, words, tags, lamb = 0):
         cur_array = feature_family_jac(family, vec, words, tags, families)
         active_features = np.concatenate((active_features, cur_array))
 
-    active_features -= lamb * vec
-
     return active_features
 
 
