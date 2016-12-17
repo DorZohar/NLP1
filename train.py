@@ -24,7 +24,7 @@ def parse(file_path):
 
 
 def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
-    print("func enter", time.time() - start_time, vec[0:10])
+    print("func enter", time.time() - start_time, vec[-10:])
     total_sum = -np.sum(vec*vec)*lamb/2
 
     for line in lines:
@@ -41,25 +41,25 @@ def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
 
 
 def jacobian(vec, lines, lamb = 0, families = [0, 3, 4]):
-    print("jac enter", time.time() - start_time, vec[0:10])
+    print("jac enter", time.time() - start_time, vec[-10:])
 
     jac_vec = np.zeros((len(vec),))
 
     for line in lines:
         words = line[0]
         tags = line[1]
-        offset = 0
-        for family in families:
-            local_get = feature_vec_by_family[family].get
-            for i in range(2, len(words)):
+        for i in range(2, len(words)):
+            prob = np.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]])
+            offset = 0
+            for family in families:
+                local_get = feature_vec_by_family[family].get
                 for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
-                    key_index = local_get(key)
-                    if key_index is not None:
-                        prob = np.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]])
-                        jac_vec[key_index + offset] += 1 - prob
-            offset += len(feature_vec_by_family[family])
+                    key_index = local_get(key, len(vec) - 1 - offset)
+                    jac_vec[key_index + offset] += 1 - prob
+                offset += len(feature_vec_by_family[family])
 
     jac_vec -= lamb * jac_vec
+    jac_vec[len(vec) - 1] = 0
 
     print("jac exit", time.time() - start_time, jac_vec[0:10])
 
@@ -72,8 +72,9 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
     content = file.read()
     file.close()
 
-    feat_num = get_vector_size(families)
+    feat_num = get_vector_size(families) + 1
     initial_guess = np.ones((feat_num,))
+    initial_guess[feat_num - 1] = 0
 
     lines = [line.split(" ") for line in content.split("\n")]
     lines_as_tuples = []

@@ -53,45 +53,21 @@ def get_vector_product(vec, families, tag_2, tag_1, words, index, tag):
         keys = feature_functor[family](tag_2, tag_1, words, index, tag)
         local_get = feature_vec_by_family[family].get
         for key in keys:
-            key_index = local_get(key)
-            if key_index is not None:
-                product += vec[key_index + base_index]
+            key_index = local_get(key, len(vec) - 1 - base_index)
+            product += vec[key_index + base_index]
         base_index += len(feature_vec_by_family[family])
 
     return product
-
-
-
-def feature_jac_dispatch(families, vec, words, tags, lamb = 0):
-
-    jac_vec = np.zeros((len(vec),))
-
-    offset = 0
-
-    for family in families:
-        local_get = feature_vec_by_family[family].get
-        for i in range(2, len(words)):
-            prob = np.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]])
-            for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
-                key_index = local_get(key)
-                if key_index is not None:
-                    jac_vec[key_index + offset] += 1 - prob
-        offset += len(feature_vec_by_family[family])
-
-    return jac_vec
 
 
 def q(vec, tag_2, tag_1, words, index, families = [0, 3, 4]):
 
     return_vec = np.asarray(list(map(lambda tag_index: get_vector_product(vec, families, tag_2, tag_1, words, index, tag_index),
                                 range(0, len(all_tags)))))
-    #for tag, tag_index in all_tags.items():
-    #    return_vec[tag_index] = get_vector_product(vec, families, tag_2, tag_1, words, index, tag_index)
 
     tags_sum = np.log(np.sum(np.exp(return_vec)))
 
     return return_vec - tags_sum
-
 
 
 if __name__ == '__main__':
