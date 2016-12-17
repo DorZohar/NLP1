@@ -56,35 +56,28 @@ def get_vector_size(families):
 
 def get_vector_product(vec, families, tag_2, tag_1, words, index, tag):
 
-    active_features = feature_dispatch(families, tag_2, tag_1, words, index, tag)
-    if active_features.size > 0:
-        return np.sum(vec[active_features])
+    product = 0
+    base_index = 0
 
-    return 0
-
-
-def feature_dispatch(families, tag_2, tag_1, words, index, tag):
-
-    active_features = np.array([], dtype=np.int)
     for family in families:
-        base_index = get_base_index(family, families)
-        offsets = feature_family(family, tag_2, tag_1, words, index, tag)
-        if offsets.size > 0:
-            active_features = np.concatenate((active_features, offsets + base_index))
+        product += feature_family(vec, base_index, family, tag_2, tag_1, words, index, tag)
+        base_index += len(feature_vec_by_family[family])
 
-    return active_features
+    return product
 
 
-def feature_family(family, tag_2, tag_1, words, index, tag):
+def feature_family(vec, offset, family, tag_2, tag_1, words, index, tag):
 
     keys = feature_functor[family](tag_2, tag_1, words, index, tag)
-    ret_list = np.array([], dtype=np.int)
+    local_sum = 0
+    local_get = feature_vec_by_family[family].get
+
     for key in keys:
-        try:
-            ret_list = np.append(ret_list, feature_vec_by_family[family][key])
-        except:
-            pass
-    return ret_list
+        key_index = local_get(key)
+        if key_index is not None:
+            local_sum += vec[key_index + offset]
+
+    return local_sum
 
 
 def feature_jac_dispatch(families, vec, words, tags, lamb = 0):

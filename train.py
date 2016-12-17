@@ -33,13 +33,16 @@ def line_to_all_qs(words, tags, vec, families = [0, 3, 4], lambda_sum = 0):
 
 
 def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
-    total_sum = 0
     print("func enter", time.time() - start_time, vec[0:10])
 
-    lambda_sum = np.sum(vec*vec)*lamb/2
+    total_sum = -np.sum(vec*vec)*lamb/2
 
     for line in lines:
-        total_sum += line_to_all_qs(line[0], line[1], vec, families, lambda_sum)
+        words = line[0]
+        tags = line[1]
+        for i in range(2, len(words)):
+            prob_vec = q(vec, tags[i - 2], tags[i - 1], words, i, families)
+            total_sum += prob_vec[tags[i]]
 
     print("func exit", time.time() - start_time, total_sum)
 
