@@ -4,7 +4,7 @@ import time
 from scipy import optimize
 import numpy as np
 
-from features import get_vector_product, feature_jac_dispatch, get_vector_size, q, num_of_features, feature_functor
+from features import get_vector_size, q, num_of_features, feature_functor, get_vector_product
 from vocabulary import all_tags
 from vocabulary import feature_vec_by_family
 
@@ -26,13 +26,17 @@ def parse(file_path):
 def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
     print("func enter", time.time() - start_time, vec[0:10])
     total_sum = -np.sum(vec*vec)*lamb/2
+    expected_sum = 0.0
 
     for line in lines:
         words = line[0]
         tags = line[1]
         for i in range(2, len(words)):
             prob_vec = q(vec, tags[i - 2], tags[i - 1], words, i, families)
-            total_sum += prob_vec[tags[i]]
+            total_sum += get_vector_product(vec, families, tags[i - 2], tags[i - 1], words, i, tags[i])
+            expected_sum += np.sum(np.exp(prob_vec))
+
+    total_sum -= np.log(expected_sum)
 
     print("func exit", time.time() - start_time, total_sum)
 
@@ -87,7 +91,7 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
                             (lines_as_tuples, lamb, families),
                             'L-BFGS-B',
                             jacobian,
-                            options={'disp': True, 'factr': 10.0})
+                            options={'disp': True})
     print(res)
 
     return res
