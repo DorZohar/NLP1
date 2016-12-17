@@ -4,8 +4,9 @@ import time
 from scipy import optimize
 import numpy as np
 
-from features import get_vector_product, feature_jac_dispatch, get_vector_size, q, num_of_features
+from features import get_vector_product, feature_jac_dispatch, get_vector_size, q, num_of_features, feature_functor
 from vocabulary import all_tags
+from vocabulary import feature_vec_by_family
 
 start_time = time.time()
 
@@ -22,19 +23,8 @@ def parse(file_path):
     return words_list, tags_list
 
 
-def line_to_all_qs(words, tags, vec, families = [0, 3, 4], lambda_sum = 0):
-    total_sum = 0
-
-    for i in range(2, len(words)):
-        prob_vec = q(vec, tags[i - 2], tags[i - 1], words, i, families)
-        total_sum += prob_vec[tags[i]]
-
-    return total_sum - lambda_sum
-
-
 def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
     print("func enter", time.time() - start_time, vec[0:10])
-
     total_sum = -np.sum(vec*vec)*lamb/2
 
     for line in lines:
@@ -49,14 +39,25 @@ def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
     return -total_sum
 
 
+
 def jacobian(vec, lines, lamb = 0, families = [0, 3, 4]):
     print("jac enter", time.time() - start_time, vec[0:10])
 
     jac_vec = np.zeros((len(vec),))
 
     for line in lines:
-        #print("line", time.time() - start_time)
-        jac_vec += feature_jac_dispatch(families, vec, line[0], line[1], lamb)
+        words = line[0]
+        tags = line[1]
+        offset = 0
+        for family in families:
+            local_get = feature_vec_by_family[family].get
+            for i in range(2, len(words)):
+                for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
+                    key_index = local_get(key)
+                    if key_index is not None:
+                        prob = np.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]])
+                        jac_vec[key_index + offset] += 1 - prob
+            offset += len(feature_vec_by_family[family])
 
     jac_vec -= lamb * jac_vec
 
@@ -81,7 +82,12 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
         tags = [all_tags['*']] * 2 + [all_tags[tag.strip().split("_")[1]] for tag in line]
         lines_as_tuples.append((words, tags))
 
-    res = optimize.minimize(q_wrapper, initial_guess, (lines_as_tuples, lamb, families), 'L-BFGS-B', jacobian, options={'disp': True})
+    res = optimize.minimize(q_wrapper,
+                            initial_guess,
+                            (lines_as_tuples, lamb, families),
+                            'L-BFGS-B',
+                            jacobian,
+                            options={'disp': True, 'factr': 10.0})
     print(res)
 
     return res
