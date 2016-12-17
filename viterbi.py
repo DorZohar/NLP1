@@ -33,12 +33,13 @@ class Viterbi:
         num_tags = len(all_tags)
 
         # create a table for pi
-        pi = np.zeros((n+1, num_tags, num_tags))
+        pi = np.ones((n+1, num_tags, num_tags))
         bp = np.zeros((n+1, num_tags, num_tags))
 
         # initialization
         start_tag_index = all_tags['*']
-        pi[0][start_tag_index][start_tag_index] = 1
+        pi *= float('inf')
+        pi[0][start_tag_index][start_tag_index] = 0
 
         for k in range(1,n+1):
             # set the tag sets for each position
@@ -48,22 +49,22 @@ class Viterbi:
                 for t in range(num_tags):
                     if k > 2 and t == start_tag_index:
                         continue
-                    q_for_all_tags = np.exp(self.q(self.vec, t, u, sentence, k-1, self.families))
+                    q_for_all_tags = -self.q(self.vec, t, u, sentence, k-1, self.families)
                     for v in range(num_tags):
                         if v == start_tag_index:
                             continue
-                        curr_prob = pi[k-1][t][u]*q_for_all_tags[v]
-                        if curr_prob > pi[k][u][v]:
+                        curr_prob = pi[k-1][t][u]+q_for_all_tags[v]
+                        if curr_prob < pi[k][u][v]:
                             pi[k][u][v] = curr_prob
                             bp[k][u][v] = t
 
         # initialize last two tags
         tags = np.zeros((n+1,), dtype=np.int)
-        max_prob = 0
+        max_prob = float('inf')
         for u in range(num_tags):
             for v in range(num_tags):
                 curr_prob = pi[n][u][v]
-                if curr_prob > max_prob:
+                if curr_prob < max_prob:
                     max_prob = curr_prob
                     tags[n] = v
                     tags[n-1] = u
