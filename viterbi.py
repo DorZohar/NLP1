@@ -1,6 +1,6 @@
 import copy
 from features import q
-from opt_results1 import simple_vec
+from opt_results0_0001 import simple_vec
 from vocabulary import all_tags, all_tags_by_index
 import numpy as np
 import time

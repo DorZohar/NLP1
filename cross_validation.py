@@ -11,6 +11,10 @@ if __name__ == '__main__':
 
     vec = train.calc_weight_vector("train.wtag", lamb = args.lamb )
 
+    file = open("opt_results" + str(args.lamb) + ".py", "w")
+    file.write("simple_vec = %s\n" % vec.x.tolist())
+    file.close()
+
     #vec = simple_vec
 
     vit = Viterbi(vec, [0, 3, 4])

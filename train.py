@@ -22,14 +22,12 @@ def parse(file_path):
     return words_list, tags_list
 
 
-def line_to_all_qs(words, tags, vec, families = [0, 3, 4], lamb = 0):
+def line_to_all_qs(words, tags, vec, families = [0, 3, 4], lambda_sum = 0):
     total_sum = 0
 
     for i in range(2, len(words)):
         prob_vec = q(vec, tags[i - 2], tags[i - 1], words, i, families)
         total_sum += prob_vec[tags[i]]
-
-    lambda_sum = sum([v*v for v in vec]) * lamb / 2
 
     return total_sum - lambda_sum
 
@@ -38,10 +36,10 @@ def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
     total_sum = 0
     print("func enter", time.time() - start_time, vec[0:10])
 
+    lambda_sum = np.sum(vec*vec)*lamb/2
+
     for line in lines:
-        #print("start:", time.time() - start_time)
-        total_sum += line_to_all_qs(line[0], line[1], vec, families, lamb)
-        #print("end:", time.time() - start_time)
+        total_sum += line_to_all_qs(line[0], line[1], vec, families, lambda_sum)
 
     print("func exit", time.time() - start_time, total_sum)
 
@@ -69,7 +67,7 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
     file.close()
 
     feat_num = get_vector_size(families)
-    initial_guess = np.zeros((feat_num,))
+    initial_guess = np.ones((feat_num,))
 
     lines = [line.split(" ") for line in content.split("\n")]
     lines_as_tuples = []

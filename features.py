@@ -104,10 +104,10 @@ def feature_family_jac(family, vec, words, tags, families):
     jacobian_vec = np.zeros((len(feature_vec_by_family[family]),))
     #start_time = time.time()
     for i in range(2, len(words)):
-        prob = np.exp([q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]]])
+        prob = np.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]])
         for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
             try:
-                jacobian_vec[feature_vec_by_family[family][key]] += 1 - prob[0]
+                jacobian_vec[feature_vec_by_family[family][key]] += 1 - prob
             except:
                 pass
 
