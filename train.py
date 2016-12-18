@@ -26,7 +26,6 @@ def parse(file_path):
 def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
     print("func enter", time.time() - start_time, vec[-10:])
     total_sum = -np.sum(vec*vec)*lamb/2
-
     for line in lines:
         words = line[0]
         tags = line[1]
@@ -49,14 +48,25 @@ def jacobian(vec, lines, lamb = 0, families = [0, 3, 4]):
         words = line[0]
         tags = line[1]
         for i in range(2, len(words)):
-            prob = np.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families)[tags[i]])
+            prob = np.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families))
             offset = 0
             for family in families:
                 local_get = feature_vec_by_family[family].get
                 for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
                     key_index = local_get(key, len(vec) - 1 - offset)
-                    jac_vec[key_index + offset] += 1 - prob
+                    jac_vec[key_index + offset] += 1 - prob[tags[i]]
                 offset += len(feature_vec_by_family[family])
+
+            for tag in range(0, len(all_tags)):
+                if tag == tags[i]:
+                    continue
+                offset = 0
+                for family in families:
+                    local_get = feature_vec_by_family[family].get
+                    for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tag):
+                        key_index = local_get(key, len(vec) - 1 - offset)
+                        jac_vec[key_index + offset] -= prob[tag]
+                    offset += len(feature_vec_by_family[family])
 
     jac_vec -= lamb * jac_vec
     jac_vec[len(vec) - 1] = 0
