@@ -46,9 +46,9 @@ def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
     total_sum = -np.sum(vec*vec)*lamb/2
 
     p = Pool(num_of_workers)
-    sums = p.map(q_wrapper_inner(vec, families), lines)
+    results = p.map(q_wrapper_inner(vec, families), lines)
 
-    total_sum += sum(sums)
+    total_sum += np.sum(results)
 
     print("func exit", time.time() - start_time, total_sum)
 
@@ -62,7 +62,7 @@ class jacobian_inner(object):
     def __call__(self, line):
         words = line[0]
         tags = line[1]
-        jac_vec = {}
+        jac_vec = np.zeros((len(self.vec),))
         for i in range(2, len(words)):
             prob = np.exp(q(self.vec, tags[i - 2], tags[i - 1], words, i, self.families))
             offset = 0
@@ -70,7 +70,7 @@ class jacobian_inner(object):
                 local_get = feature_vec_by_family[family].get
                 for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
                     key_index = local_get(key, len(self.vec) - 1 - offset)
-                    jac_vec[key_index + offset] = jac_vec.setdefault(key_index + offset, 0) + 1 - prob[tags[i]]
+                    jac_vec[key_index + offset] += 1 - prob[tags[i]]
                 offset += len(feature_vec_by_family[family])
 
             for tag in range(0, len(all_tags)):
@@ -81,24 +81,22 @@ class jacobian_inner(object):
                     local_get = feature_vec_by_family[family].get
                     for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tag):
                         key_index = local_get(key, len(self.vec) - 1 - offset)
-                        jac_vec[key_index + offset] = jac_vec.setdefault(key_index + offset, 0) - prob[tag]
+                        jac_vec[key_index + offset] -= prob[tag]
                     offset += len(feature_vec_by_family[family])
         return jac_vec
 
-
-def jac_reduce_func(acc_val, sparse_vec):
-    for index, val in sparse_vec.items():
-        acc_val[index] += val
-    return acc_val
 
 def jacobian(vec, lines, lamb = 0, families = [0, 3, 4]):
     print("jac enter", time.time() - start_time, vec[-10:])
 
     jac_vec = np.zeros((len(vec),))
-
     p = Pool(num_of_workers)
-    dicts = p.map(jacobian_inner(vec, families), lines)
-    jac_vec = functools.reduce(jac_reduce_func, list(dicts), jac_vec)
+    vectors_it = p.imap_unordered(jacobian_inner(vec, families), lines)
+
+    for res in vectors_it:
+        jac_vec += res
+    p.close()
+    p.join()
 
     jac_vec -= lamb * jac_vec
     jac_vec[len(vec) - 1] = 0
