@@ -1,3 +1,4 @@
+import functools
 import math
 
 import time
@@ -7,6 +8,9 @@ import numpy as np
 from features import get_vector_size, q, num_of_features, feature_functor, get_vector_product
 from vocabulary import all_tags
 from vocabulary import feature_vec_by_family
+from multiprocessing import Pool
+
+num_of_workers = 3
 
 start_time = time.time()
 
@@ -23,50 +27,78 @@ def parse(file_path):
     return words_list, tags_list
 
 
-def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
-    print("func enter", time.time() - start_time, vec[-10:])
-    total_sum = -np.sum(vec*vec)*lamb/2
-    for line in lines:
+class q_wrapper_inner(object):
+    def __init__(self, vec, families):
+        self.vec = vec
+        self.families = families
+    def __call__(self, line):
+        total_sum = 0
         words = line[0]
         tags = line[1]
         for i in range(2, len(words)):
-            prob_vec = q(vec, tags[i - 2], tags[i - 1], words, i, families)
+            prob_vec = q(self.vec, tags[i - 2], tags[i - 1], words, i, self.families)
             total_sum += prob_vec[tags[i]]
+        return total_sum
+
+
+def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
+    print("func enter", time.time() - start_time, vec[-10:])
+    total_sum = -np.sum(vec*vec)*lamb/2
+
+    p = Pool(num_of_workers)
+    sums = p.map(q_wrapper_inner(vec, families), lines)
+
+    total_sum += sum(sums)
 
     print("func exit", time.time() - start_time, total_sum)
 
     return -total_sum
 
 
-
-def jacobian(vec, lines, lamb = 0, families = [0, 3, 4]):
-    print("jac enter", time.time() - start_time, vec[-10:])
-
-    jac_vec = np.zeros((len(vec),))
-
-    for line in lines:
+class jacobian_inner(object):
+    def __init__(self, vec, families):
+        self.vec = vec
+        self.families = families
+    def __call__(self, line):
         words = line[0]
         tags = line[1]
+        jac_vec = {}
         for i in range(2, len(words)):
-            prob = np.exp(q(vec, tags[i - 2], tags[i - 1], words, i, families))
+            prob = np.exp(q(self.vec, tags[i - 2], tags[i - 1], words, i, self.families))
             offset = 0
-            for family in families:
+            for family in self.families:
                 local_get = feature_vec_by_family[family].get
                 for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tags[i]):
-                    key_index = local_get(key, len(vec) - 1 - offset)
-                    jac_vec[key_index + offset] += 1 - prob[tags[i]]
+                    key_index = local_get(key, len(self.vec) - 1 - offset)
+                    jac_vec[key_index + offset] = jac_vec.setdefault(key_index + offset, 0) + 1 - prob[tags[i]]
                 offset += len(feature_vec_by_family[family])
 
             for tag in range(0, len(all_tags)):
                 if tag == tags[i]:
                     continue
                 offset = 0
-                for family in families:
+                for family in self.families:
                     local_get = feature_vec_by_family[family].get
                     for key in feature_functor[family](tags[i - 2], tags[i - 1], words, i, tag):
-                        key_index = local_get(key, len(vec) - 1 - offset)
-                        jac_vec[key_index + offset] -= prob[tag]
+                        key_index = local_get(key, len(self.vec) - 1 - offset)
+                        jac_vec[key_index + offset] = jac_vec.setdefault(key_index + offset, 0) - prob[tag]
                     offset += len(feature_vec_by_family[family])
+        return jac_vec
+
+
+def jac_reduce_func(acc_val, sparse_vec):
+    for index, val in sparse_vec.items():
+        acc_val[index] += val
+    return acc_val
+
+def jacobian(vec, lines, lamb = 0, families = [0, 3, 4]):
+    print("jac enter", time.time() - start_time, vec[-10:])
+
+    jac_vec = np.zeros((len(vec),))
+
+    p = Pool(num_of_workers)
+    dicts = p.map(jacobian_inner(vec, families), lines)
+    jac_vec = functools.reduce(jac_reduce_func, list(dicts), jac_vec)
 
     jac_vec -= lamb * jac_vec
     jac_vec[len(vec) - 1] = 0
