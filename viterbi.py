@@ -1,9 +1,17 @@
 import copy
 from features import q
-from opt_results0_0001 import simple_vec
+from opt_results0_01 import simple_vec
 from vocabulary import all_tags, all_tags_by_index
 import numpy as np
 import time
+from multiprocessing import Pool
+import argparse
+
+class Tagger():
+    def __init__(self, viterbi):
+        self.viterbi = viterbi
+    def __call__(self, sentence):
+        return self.viterbi.tag_sentence(sentence)
 
 class Viterbi:
     def __init__(self, vec, families):
@@ -12,11 +20,12 @@ class Viterbi:
         self.vec = np.array(vec)
         self.families = families
 
-    def parse_training_file(self, path):
+    def parse_training_file(self, path, num_sentences):
         with open(path) as f:
             sentences = f.readlines()
 
-        sentences = sentences[1:20]
+        if num_sentences > 0:
+            sentences = sentences[:num_sentences]
 
         words = [[tuple.split('_')[0] for tuple in sentence.strip().split(' ')] for sentence in sentences]
         tags = [[tuple.split('_')[1] for tuple in sentence.strip().split(' ')] for sentence in sentences]
@@ -78,23 +87,42 @@ class Viterbi:
 
         return tag_names[1:]
 
-    def evaluate(self, path):
-        words, tags, num_words = self.parse_training_file(path)
+    def evaluate(self, path, num_of_workers, num_sentences):
+        start = time.time()
+        num_of_workers = 50
+        words, tags, num_words = self.parse_training_file(path, num_sentences)
+        num_words = 0
         count_correct = 0
-        for sentence, sentence_tags in zip(words, tags):
-            predicted_tags = self.tag_sentence(sentence)
-            count_correct += sum([1 for tag, predicted_tag in zip(sentence_tags, predicted_tags) if tag == predicted_tag])
-            print(sentence_tags)
-            print(predicted_tags)
-            print("-----------------------")
+        confusion_matrix = np.zeros((len(all_tags),len(all_tags)))
+
+        p = Pool(num_of_workers)
+        all_predicted_tags = p.imap(Tagger(self), words)
+
+        for predicted_tags, sentence_tags in zip(all_predicted_tags, tags):
+            #print("-----------------------")
+            for tag, predicted_tag in zip(sentence_tags, predicted_tags):
+                count_correct += (tag == predicted_tag)
+                confusion_matrix[all_tags[tag], all_tags[predicted_tag]] += 1
+            #print(sentence_tags)
+            #print(predicted_tags)
+            num_words += len(sentence_tags)
 
         accuracy = count_correct/float(num_words)
-        error = 1 - accuracy
 
-        print(accuracy)
-
+        print("accuracy = " + str(accuracy))
+        print("time = " + str(time.time()-start))
+        print("confusion matrix:")
+        print(confusion_matrix)
+        with open("confusion_matrix.csv", 'w') as f:
+            np.savetxt(f, confusion_matrix, delimiter=",", fmt='%i', header=','.join(all_tags_by_index.values()))
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--test', default="test.wtag")
+    parser.add_argument('-n', '--num_workers', type=int, default=50)
+    parser.add_argument('-s', '--num_sentences', type=int, default=0)
+    args = parser.parse_args()
+
     vit = Viterbi(simple_vec, [0, 3, 4])
 
-    vit.evaluate("test.wtag")
+    vit.evaluate(args.test, args.num_workers, args.num_sentences)
