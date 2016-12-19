@@ -63,7 +63,7 @@ def get_vector_product(vec, families, tag_2, tag_1, words, index, tag):
 def q(vec, tag_2, tag_1, words, index, families = [0, 3, 4]):
 
     return_vec = np.asarray(list(map(lambda tag_index: get_vector_product(vec, families, tag_2, tag_1, words, index, tag_index),
-                                range(0, len(all_tags)))))
+                                range(0, len(all_tags)))), dtype=np.float64)
 
     tags_sum = np.log(np.sum(np.exp(return_vec)))
 
