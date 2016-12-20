@@ -106,6 +106,7 @@ class func_and_jacobian(object):
                     jac_vec[feat] -= prob[tag]
 
         jac_vec -= self.lamb * jac_vec
+        total_sum -= self.lamb * sum(vec*vec)
         jac_vec[len(vec) - 1] = 0
 
         print("jac exit", time.time() - start_time, total_sum, jac_vec[0:10])
