@@ -1,6 +1,6 @@
 import math
 
-from features import num_of_features
+from features import num_of_features, rare_word_freq, capitalized_seq
 
 all_tags = {'PRP': 25, 'VBN': 37, 'NNP': 20, 'SYM': 31, '$': 1, '-RRB-': 6, 'UH': 33, 'FW': 13, 'PRP$': 26, 'NNPS': 21, 'JJS': 17, 'IN': 14, '*': 3, 'VBZ': 39, "''": 2, 'VBD': 35, 'RP': 30, 'DT': 11, 'CC': 9, 'TO': 32, 'WP$': 42, '``': 44, ':': 8, 'VBP': 38, 'PDT': 23, 'WDT': 40, 'WRB': 43, 'RBS': 29, 'JJ': 15, 'EX': 12, 'CD': 10, 'WP': 41, 'MD': 18, 'VB': 34, ',': 4, 'NNS': 22, 'RBR': 28, 'POS': 24, '.': 7, 'NN': 19, 'JJR': 16, 'RB': 27, 'VBG': 36, '#': 0, '-LRB-': 5}
 
@@ -12,6 +12,7 @@ def write_to_file(file_path):
     content = file.read()
     lines = [line.split(" ") for line in content.split("\n")]
     lines_as_tuples = []
+    word_freq = {}
     for line in lines:
         words = ['*'] * 2 + [word.split("_")[0] for word in line]
         tags = [all_tags['*']] * 2 + [all_tags[tag.split("_")[1]] for tag in line]
@@ -20,6 +21,14 @@ def write_to_file(file_path):
     func_sets = []
     for i in range(0, num_of_features):
         func_sets.append(set())
+
+    # Count words in vocabulary
+    for line in lines_as_tuples:
+        for i in range(0, len(line[0])):
+            if line[0][i].lower() in word_freq:
+                word_freq[line[0][i].lower()] += 1
+            else:
+                word_freq[line[0][i].lower()] = 1
 
     for line in lines_as_tuples:
         for i in range(0, len(line[0])):
@@ -64,9 +73,16 @@ def write_to_file(file_path):
             if all(char.isdigit() or char == "," or char == "-" for char in line[0][i]):
                 func_sets[15].add(line[1][i])
 
-            if line[0][i].isupper() and line[0][i].isalpha():
+            if i > 2 and line[0][i-1] != '.' and line[0][i].isupper() and line[0][i].isalpha():
                 func_sets[16].add(line[1][i])
 
+            if line[0][i].isalpha() and word_freq.get(line[0][i].lower(), 0) <= rare_word_freq:
+                func_sets[17].add(line[1][i])
+
+            if i >= 2:
+                cap_word_family18 = capitalized_seq(line[1][i-2], line[1][i-1], line[0], i, line[1][i])
+                if len(cap_word_family18) > 0:
+                    func_sets[18].add(cap_word_family18[0])
 
 
     file = open("vocabulary2.py", "w")
@@ -90,6 +106,8 @@ def write_to_file(file_path):
         for j in range(0, len(ordered_list)):
             func_vector[i][ordered_list[j]] = j
         file.write("feature_vec_by_family[%d] = %s\n" % (i, func_vector[i]))
+
+    file.write("\nword_freq = %s\n" % word_freq)
 
     file.close()
 

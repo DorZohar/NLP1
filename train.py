@@ -2,6 +2,7 @@ import math
 
 import time
 from multiprocessing.pool import Pool
+from os import makedirs
 
 from scipy import optimize
 import numpy as np
@@ -28,6 +29,21 @@ def parse(file_path):
     return words_list, tags_list
 
 
+def get_dir_path(families, lamb):
+    families_str = "Families_" + "_".join([str(family) for family in families])
+    lamb_str = "Lamb_" + str(lamb).replace(".", "-")
+
+    dir_path = "vectors/%s/%s/" % (families_str, lamb_str)
+    return dir_path
+
+
+def create_and_get_path(families, lamb):
+    dir_path = get_dir_path(families, lamb)
+    makedirs(dir_path)
+
+    return dir_path + "vector.py"
+
+
 class calculate_qs(object):
     def __init__(self, vec, families):
         self.vec = vec
@@ -52,6 +68,8 @@ class func_and_jacobian(object):
         feat_num = get_vector_size(families) + 1
         self.observed = np.zeros((feat_num,))
         self.expected = []
+        self.calls = 0
+        self.vec_path = create_and_get_path(families, lamb)
 
         for line in self.lines:
             words = line[0]
@@ -83,8 +101,19 @@ class func_and_jacobian(object):
             self.expected.append(line_list)
 
 
+    def keep_current_vec(self, vec):
+        file = open(self.vec_path, "w")
+        file.write("simple_vec = %s\n" % vec.tolist())
+        file.close()
+
+
     def __call__(self, vec):
         print("jac enter", time.time() - start_time, vec[-10:])
+
+        self.calls += 1
+
+        if self.calls % 200 == 0:
+            self.keep_current_vec(vec)
 
         jac_vec = np.zeros((len(vec),)) + self.observed
 
