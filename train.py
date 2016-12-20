@@ -28,22 +28,6 @@ def parse(file_path):
     return words_list, tags_list
 
 
-def q_wrapper(vec, lines, lamb = 0, families = [0, 3, 4]):
-    print("func enter", time.time() - start_time, vec[-10:])
-    total_sum = -np.sum(vec*vec)*lamb/2
-    for line in lines:
-        words = line[0]
-        tags = line[1]
-        for i in range(2, len(words)):
-            prob_vec = q(vec, tags[i - 2], tags[i - 1], words, i, families)
-            total_sum += prob_vec[tags[i]]
-
-    print("func exit", time.time() - start_time, total_sum)
-
-    return -total_sum
-
-
-
 class calculate_qs(object):
     def __init__(self, vec, families):
         self.vec = vec
@@ -51,51 +35,16 @@ class calculate_qs(object):
     def __call__(self, line):
         words = line[0]
         tags = line[1]
+        qs_list = []
         total_sum = 0
         for i in range(2, len(words)):
             probs = q(self.vec, tags[i - 2], tags[i - 1], words, i, self.families)
-            total_sum += probs[tags[i]]
-        return total_sum
-
-
-class target_func(object):
-
-    def __init__(self, lines, lamb = 0, families = [0, 3, 4]):
-        self.lines = lines
-        self.lamb = lamb
-        self.families = families
-
-    def __call__(self, vec):
-        print("func enter", time.time() - start_time, vec[-10:])
-        p = Pool(num_of_workers)
-        calc_q = calculate_qs(vec, self.families)
-        all_qs = p.map(calc_q, self.lines)
-        p.close()
-        p.join()
-        print("start sync", time.time() - start_time)
-
-        func_val = np.sum(all_qs) - np.sum(vec*vec)*self.lamb/2
-
-        print("func exit", time.time() - start_time, func_val)
-
-        return -func_val
-
-
-class calculate_qs_for_jac(object):
-    def __init__(self, vec, families):
-        self.vec = vec
-        self.families = families
-    def __call__(self, line):
-        words = line[0]
-        tags = line[1]
-        qs_list = []
-        for i in range(2, len(words)):
-            probs = q(self.vec, tags[i - 2], tags[i - 1], words, i, self.families)
             qs_list.append(probs)
-        return qs_list
+            total_sum += probs[tags[i]]
+        return total_sum, qs_list
 
 
-class jacobian(object):
+class func_and_jacobian(object):
     def __init__(self, lines, lamb=0, families=[0, 3, 4]):
         self.lines = lines
         self.lamb = lamb
@@ -140,12 +89,17 @@ class jacobian(object):
         jac_vec = np.zeros((len(vec),)) + self.observed
 
         p = Pool(num_of_workers)
-        calc_q = calculate_qs_for_jac(vec, self.families)
+        calc_q = calculate_qs(vec, self.families)
         all_qs_lines = p.map(calc_q, self.lines)
+        total_sum = 0
         p.close()
         p.join()
 
-        for line, qs_line in zip(self.expected, all_qs_lines):
+        print("sync enter", time.time() - start_time)
+
+        for line, qs_sum_and_line in zip(self.expected, all_qs_lines):
+            qs_line = qs_sum_and_line[1]
+            total_sum += qs_sum_and_line[0]
             for word_list, qs in zip(line, qs_line):
                 prob = np.exp(qs)
                 for feat, tag in word_list:
@@ -154,9 +108,9 @@ class jacobian(object):
         jac_vec -= self.lamb * jac_vec
         jac_vec[len(vec) - 1] = 0
 
-        print("jac exit", time.time() - start_time, jac_vec[0:10])
+        print("jac exit", time.time() - start_time, total_sum, jac_vec[0:10])
 
-        return -jac_vec
+        return -total_sum, -jac_vec
 
 
 def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
@@ -176,13 +130,12 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
         tags = [all_tags['*']] * 2 + [all_tags[tag.strip().split("_")[1]] for tag in line]
         lines_as_tuples.append((words, tags))
 
-    target = target_func(lines_as_tuples, lamb, families)
-    jac = jacobian(lines_as_tuples, lamb, families)
+    jac = func_and_jacobian(lines_as_tuples, lamb, families)
 
-    res = optimize.minimize(target,
+    res = optimize.minimize(jac,
                             x0=initial_guess,
                             method='L-BFGS-B',
-                            jac=jac,
+                            jac=True,
                             options={'disp': True})
     print(res)
 
