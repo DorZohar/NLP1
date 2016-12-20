@@ -105,8 +105,8 @@ class func_and_jacobian(object):
                 for feat, tag in word_list:
                     jac_vec[feat] -= prob[tag]
 
-        jac_vec -= self.lamb * jac_vec
-        total_sum -= self.lamb * sum(vec*vec)
+        jac_vec -= self.lamb * vec
+        total_sum -= 0.5 * self.lamb * np.sum(vec*vec)
         jac_vec[len(vec) - 1] = 0
 
         print("jac exit", time.time() - start_time, total_sum, jac_vec[0:10])
