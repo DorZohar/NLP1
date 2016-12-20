@@ -6,6 +6,8 @@ from multiprocessing.pool import Pool
 import numpy as np
 import time
 
+from scipy.misc import logsumexp
+
 from vocabulary import feature_vec_by_family, all_tags
 from opt_results1 import simple_vec
 
@@ -65,7 +67,7 @@ def q(vec, tag_2, tag_1, words, index, families = [0, 3, 4]):
     return_vec = np.asarray(list(map(lambda tag_index: get_vector_product(vec, families, tag_2, tag_1, words, index, tag_index),
                                 range(0, len(all_tags)))), dtype=np.float64)
 
-    tags_sum = np.log(np.sum(np.exp(return_vec)))
+    tags_sum = logsumexp(return_vec)
 
     return return_vec - tags_sum
 
