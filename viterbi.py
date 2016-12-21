@@ -1,6 +1,6 @@
 import copy
 from features import q
-from opt_results0_01 import simple_vec
+from vector import simple_vec
 from train import get_dir_path
 from vocabulary import all_tags, all_tags_by_index
 import numpy as np
@@ -130,6 +130,6 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--num_sentences', type=int, default=0)
     args = parser.parse_args()
 
-    vit = Viterbi(simple_vec, [0, 3, 4])
+    vit = Viterbi(simple_vec, [0, 1, 2, 3, 4, 5, 7, 8, 15, 16, 17, 19, 20, 21])
 
-    vit.evaluate(args.test, args.num_workers, args.num_sentences)
+    vit.evaluate(args.test, args.num_workers, args.num_sentences, 0.1)

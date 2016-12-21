@@ -177,7 +177,7 @@ feature_functor = [
                                                   words[index].isupper() and words[index].isalpha() else [],
 
     # 17 - Is the current word rare (Did it appear less than x times in the training)
-    lambda tag_2, tag_1, words, index, tag: [tag] if words[index].isalpha() and word_freq[words[index].lower()] <= rare_word_freq else [],
+    lambda tag_2, tag_1, words, index, tag: [tag] if words[index].isalpha() and word_freq.get(words[index].lower(), 0) <= rare_word_freq else [],
 
     # 18 - Is the current word a part of a capitalized sequence ending with word w
     capitalized_seq,
