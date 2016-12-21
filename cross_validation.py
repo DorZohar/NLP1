@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     vec = train.calc_weight_vector("train.wtag", families=args.families, lamb = args.lamb )
     path = train.create_and_get_path(args.families, args.lamb)
-    file = open("path", "w")
+    file = open(path, "w")
     file.write("simple_vec = %s\n" % vec.x.tolist())
     file.close()
 
