@@ -1,6 +1,7 @@
 import copy
 from features import q
 from opt_results0_01 import simple_vec
+from train import get_dir_path
 from vocabulary import all_tags, all_tags_by_index
 import numpy as np
 import time
@@ -87,7 +88,7 @@ class Viterbi:
 
         return tag_names[1:]
 
-    def evaluate(self, path, num_of_workers, num_sentences):
+    def evaluate(self, path, num_of_workers = 3, num_sentences = 10, lamb = 0.0):
         start = time.time()
         num_of_workers = 50
         words, tags, num_words = self.parse_training_file(path, num_sentences)
@@ -113,8 +114,14 @@ class Viterbi:
         print("time = " + str(time.time()-start))
         print("confusion matrix:")
         print(confusion_matrix)
-        with open("confusion_matrix.csv", 'w') as f:
+        path = get_dir_path(self.families, lamb)
+        with open("%s/confusion_matrix.csv" % path, 'w') as f:
             np.savetxt(f, confusion_matrix, delimiter=",", fmt='%i', header=','.join(all_tags_by_index.values()))
+
+        with open("%s/run_log.txt" % path, 'w') as f:
+            f.write("accuracy = " + str(accuracy))
+            f.write("time = " + str(time.time()-start))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

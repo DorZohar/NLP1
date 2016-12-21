@@ -1,6 +1,7 @@
 import math
 
-from features import num_of_features, rare_word_freq, capitalized_seq
+from features import num_of_features, rare_word_freq, capitalized_seq, return_adjective_signs, count_simple_verb_signs, \
+    transform_past_to_present
 
 all_tags = {'PRP': 25, 'VBN': 37, 'NNP': 20, 'SYM': 31, '$': 1, '-RRB-': 6, 'UH': 33, 'FW': 13, 'PRP$': 26, 'NNPS': 21, 'JJS': 17, 'IN': 14, '*': 3, 'VBZ': 39, "''": 2, 'VBD': 35, 'RP': 30, 'DT': 11, 'CC': 9, 'TO': 32, 'WP$': 42, '``': 44, ':': 8, 'VBP': 38, 'PDT': 23, 'WDT': 40, 'WRB': 43, 'RBS': 29, 'JJ': 15, 'EX': 12, 'CD': 10, 'WP': 41, 'MD': 18, 'VB': 34, ',': 4, 'NNS': 22, 'RBR': 28, 'POS': 24, '.': 7, 'NN': 19, 'JJR': 16, 'RB': 27, 'VBG': 36, '#': 0, '-LRB-': 5}
 
@@ -25,6 +26,8 @@ def write_to_file(file_path):
     # Count words in vocabulary
     for line in lines_as_tuples:
         for i in range(0, len(line[0])):
+            if not line[0][i].isalpha():
+                continue
             if line[0][i].lower() in word_freq:
                 word_freq[line[0][i].lower()] += 1
             else:
@@ -83,6 +86,19 @@ def write_to_file(file_path):
                 cap_word_family18 = capitalized_seq(line[1][i-2], line[1][i-1], line[0], i, line[1][i])
                 if len(cap_word_family18) > 0:
                     func_sets[18].add(cap_word_family18[0])
+
+            if line[0][i].isalpha() and len(line[0][i]) >= 3:
+                comp, super = return_adjective_signs(line[0][i])
+                if comp in word_freq and super in word_freq:
+                    func_sets[19].add(line[1][i])
+
+            if line[0][i].isalpha() and len(line[0][i]) >= 2:
+                if count_simple_verb_signs(line[0][i]) >= 2:
+                    func_sets[20].add(line[1][i])
+
+            if line[0][i].isalpha() and len(line[0][i]) >= 4:
+                if count_simple_verb_signs(transform_past_to_present(line[0][i])) >= 2:
+                    func_sets[21].add(line[1][i])
 
 
     file = open("vocabulary2.py", "w")
