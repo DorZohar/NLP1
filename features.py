@@ -6,6 +6,7 @@ from multiprocessing.pool import Pool
 import numpy as np
 import time
 
+import re
 from scipy.misc import logsumexp
 
 from vocabulary import feature_vec_by_family, all_tags, word_freq
@@ -14,6 +15,9 @@ from opt_results1 import simple_vec
 num_of_letters = 4
 num_of_features = 22
 rare_word_freq = 2
+
+regexp1 = re.compile("[a-z,0-9]-[a-z]")
+regexp2 = re.compile("[a-z]-[a-z,0-9]")
 
 
 def capitalized_seq(tag_2, tag_1, words, index, tag):
@@ -164,7 +168,7 @@ feature_functor = [
     lambda tag_2, tag_1, words, index, tag: [(len(words[index]), tag)],
 
     # 13 - Does the current word contain a "-"
-    lambda tag_2, tag_1, words, index, tag: [tag] if "-" in words[index] else [],
+    lambda tag_2, tag_1, words, index, tag: [tag] if regexp1.search(words[index]) or regexp2.search(words[index]) else [],
 
     # 14 - The word before the last word
     lambda tag_2, tag_1, words, index, tag: [(words[index - 2].lower(), tag)] if index > 1 else [],
