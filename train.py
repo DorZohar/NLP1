@@ -6,7 +6,7 @@ from os import makedirs
 
 from scipy import optimize
 import numpy as np
-from opt_results0_1 import simple_vec
+from vector import simple_vec
 
 from features import get_vector_size, q, num_of_features, feature_functor, get_vector_product
 from vocabulary import all_tags
@@ -39,7 +39,10 @@ def get_dir_path(families, lamb):
 
 def create_and_get_path(families, lamb):
     dir_path = get_dir_path(families, lamb)
-    makedirs(dir_path)
+    try:
+        makedirs(dir_path)
+    except FileExistsError:
+        pass
 
     return dir_path + "vector.py"
 
@@ -150,7 +153,7 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
     file.close()
 
     feat_num = get_vector_size(families) + 1
-    initial_guess = np.ones((feat_num,))
+    initial_guess = np.asarray(simple_vec)
     initial_guess[feat_num - 1] = 0
 
     lines = [line.split(" ") for line in content.split("\n")]
