@@ -115,7 +115,7 @@ class Viterbi:
         print("confusion matrix:")
         print(confusion_matrix)
         path = get_dir_path(self.families, lamb)
-        with open("%s/confusion_matrix.csv" % path, 'w') as f:
+        with open("%s/confusion_matrix.csv" % path, 'wb') as f:
             np.savetxt(f, confusion_matrix, delimiter=",", fmt='%i', header=','.join(all_tags_by_index.values()))
 
         with open("%s/run_log.txt" % path, 'w') as f:
@@ -128,8 +128,11 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--test', default="test.wtag")
     parser.add_argument('-n', '--num_workers', type=int, default=50)
     parser.add_argument('-s', '--num_sentences', type=int, default=0)
+    parser.add_argument('--lamb', type=float, default=0)
+    parser.add_argument('-f', '--families', nargs='+', type=int, default=[0, 3, 4])
+
     args = parser.parse_args()
 
-    vit = Viterbi(simple_vec, [0, 1, 2, 3, 4, 5, 7, 8, 15, 16, 17, 19, 20, 21])
+    vit = Viterbi(simple_vec, args.families)
 
-    vit.evaluate(args.test, args.num_workers, args.num_sentences, 0.1)
+    vit.evaluate(args.test, args.num_workers, args.num_sentences, args.lamb)

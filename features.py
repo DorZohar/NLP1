@@ -18,6 +18,7 @@ rare_word_freq = 2
 
 regexp1 = re.compile("[a-z,0-9]-[a-z]")
 regexp2 = re.compile("[a-z]-[a-z,0-9]")
+regexp3 = re.compile("[0-9][0-9,\,]*(\.[0-9,\.]+)?(-[0-9][0-9,\,]*(\.[0-9][0-9,\,]*)?)?")
 
 
 def capitalized_seq(tag_2, tag_1, words, index, tag):
@@ -174,7 +175,7 @@ feature_functor = [
     lambda tag_2, tag_1, words, index, tag: [(words[index - 2].lower(), tag)] if index > 1 else [],
 
     # 15 - Is the current word a number
-    lambda tag_2, tag_1, words, index, tag: [tag] if all(char.isdigit() or char == "," or char == "-" for char in words[index]) else [],
+    lambda tag_2, tag_1, words, index, tag: [tag] if regexp3.match(words[index]) else [],
 
     # 16 - Is the current word capitalized even though it is not first in the sentence
     lambda tag_2, tag_1, words, index, tag: [tag] if (index > 2 and words[index - 1] != '.') and
@@ -206,8 +207,9 @@ def get_vector_product(vec, families, tag_2, tag_1, words, index, tag):
         keys = feature_functor[family](tag_2, tag_1, words, index, tag)
         local_get = feature_vec_by_family[family].get
         for key in keys:
-            key_index = local_get(key, len(vec) - 1 - base_index)
-            product += vec[key_index + base_index]
+            key_index = local_get(key)
+            if key_index is not None:
+                product += vec[key_index + base_index]
         base_index += len(feature_vec_by_family[family])
 
     return product

@@ -1,7 +1,7 @@
 import math
 
 from features import num_of_features, rare_word_freq, capitalized_seq, return_adjective_signs, count_simple_verb_signs, \
-    transform_past_to_present
+    transform_past_to_present, regexp1, regexp2, regexp3
 import re
 
 all_tags = {'PRP': 25, 'VBN': 37, 'NNP': 20, 'SYM': 31, '$': 1, '-RRB-': 6, 'UH': 33, 'FW': 13, 'PRP$': 26, 'NNPS': 21, 'JJS': 17, 'IN': 14, '*': 3, 'VBZ': 39, "''": 2, 'VBD': 35, 'RP': 30, 'DT': 11, 'CC': 9, 'TO': 32, 'WP$': 42, '``': 44, ':': 8, 'VBP': 38, 'PDT': 23, 'WDT': 40, 'WRB': 43, 'RBS': 29, 'JJ': 15, 'EX': 12, 'CD': 10, 'WP': 41, 'MD': 18, 'VB': 34, ',': 4, 'NNS': 22, 'RBR': 28, 'POS': 24, '.': 7, 'NN': 19, 'JJR': 16, 'RB': 27, 'VBG': 36, '#': 0, '-LRB-': 5}
@@ -15,9 +15,6 @@ def write_to_file(file_path):
     lines = [line.split(" ") for line in content.split("\n")]
     lines_as_tuples = []
     word_freq = {}
-
-    regexp1 = re.compile("[a-z,0-9]-[a-z]")
-    regexp2 = re.compile("[a-z]-[a-z,0-9]")
 
     for line in lines:
         words = ['*'] * 2 + [word.split("_")[0] for word in line]
@@ -78,7 +75,7 @@ def write_to_file(file_path):
             if i >= 2:
                 func_sets[14].add((line[0][i - 2].lower(), line[1][i]))
 
-            if all(char.isdigit() or char == "," or char == "-" for char in line[0][i]):
+            if regexp3.match(line[0][i]):
                 func_sets[15].add(line[1][i])
 
             if i > 2 and line[0][i-1] != '.' and line[0][i].isupper() and line[0][i].isalpha():

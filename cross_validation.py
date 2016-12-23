@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     #vec = simple_vec
 
-    vit = Viterbi(vec, args.families)
+    vit = Viterbi(vec.x.tolist(), args.families)
     vit.evaluate("validation.wtag", 3, 0, args.lamb)
 
     print(args.lamb)
