@@ -78,8 +78,9 @@ def write_to_file(file_path):
             if regexp3.match(line[0][i]):
                 func_sets[15].add(line[1][i])
 
-            if i > 2 and line[0][i-1] != '.' and line[0][i].isupper() and line[0][i].isalpha():
+            if i > 2 and line[0][i-1] != '.' and line[0][i][0].isupper() and line[0][i][0].isalpha():
                 func_sets[16].add(line[1][i])
+
 
             if line[0][i].isalpha() and word_freq.get(line[0][i].lower(), 0) <= rare_word_freq:
                 func_sets[17].add(line[1][i])
@@ -102,6 +103,8 @@ def write_to_file(file_path):
                 if count_simple_verb_signs(transform_past_to_present(line[0][i])) >= 2:
                     func_sets[21].add(line[1][i])
 
+            if i < len(line[0]) - 2:
+                func_sets[7].add((line[0][i + 2].lower(), line[1][i]))
 
     file = open("vocabulary2.py", "w")
 

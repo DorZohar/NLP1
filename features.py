@@ -13,12 +13,12 @@ from vocabulary import feature_vec_by_family, all_tags, word_freq
 from opt_results1 import simple_vec
 
 num_of_letters = 4
-num_of_features = 22
-rare_word_freq = 2
+num_of_features = 23
+rare_word_freq = 1
 
 regexp1 = re.compile("[a-z,0-9]-[a-z]")
 regexp2 = re.compile("[a-z]-[a-z,0-9]")
-regexp3 = re.compile("[0-9][0-9,\,]*(\.[0-9,\.]+)?(-[0-9][0-9,\,]*(\.[0-9][0-9,\,]*)?)?")
+regexp3 = re.compile("^[0-9][0-9,]*(\.[0-9,.]+)?(-[0-9][0-9,,]*(\.[0-9][0-9,]*)?)?$")
 
 
 def capitalized_seq(tag_2, tag_1, words, index, tag):
@@ -179,7 +179,7 @@ feature_functor = [
 
     # 16 - Is the current word capitalized even though it is not first in the sentence
     lambda tag_2, tag_1, words, index, tag: [tag] if (index > 2 and words[index - 1] != '.') and
-                                                  words[index].isupper() and words[index].isalpha() else [],
+                                                  words[index][0].isupper() and words[index][0].isalpha() else [],
 
     # 17 - Is the current word rare (Did it appear less than x times in the training)
     lambda tag_2, tag_1, words, index, tag: [tag] if words[index].isalpha() and word_freq.get(words[index].lower(), 0) <= rare_word_freq else [],
@@ -195,6 +195,9 @@ feature_functor = [
 
     # 21 - Are there signs that the current word is a past verb
     past_verb_signs,
+
+    # 22 - The word after the next word
+    lambda tag_2, tag_1, words, index, tag: [(words[index + 2].lower(), tag)] if index < len(words) - 2 else [],
 ]
 
 
