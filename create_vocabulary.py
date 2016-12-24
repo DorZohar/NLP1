@@ -104,7 +104,7 @@ def write_to_file(file_path):
                     func_sets[21].add(line[1][i])
 
             if i < len(line[0]) - 2:
-                func_sets[7].add((line[0][i + 2].lower(), line[1][i]))
+                func_sets[22].add((line[0][i + 2].lower(), line[1][i]))
 
     file = open("vocabulary2.py", "w")
 
