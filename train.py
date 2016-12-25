@@ -153,7 +153,7 @@ def calc_weight_vector(file_path, families = [0, 3, 4], lamb = 0):
     file.close()
 
     feat_num = get_vector_size(families) + 1
-    initial_guess = np.ones((feat_num,))
+    initial_guess = np.asarray(simple_vec)  #np.ones((feat_num,)) #
     initial_guess[feat_num - 1] = 0
 
     lines = [line.split(" ") for line in content.split("\n")]
