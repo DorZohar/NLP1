@@ -14,7 +14,7 @@ from vocabulary import feature_vec_by_family
 
 start_time = time.time()
 
-num_of_workers = 3
+num_of_workers = 50
 
 def parse(file_path):
     file = open(file_path, "r")
@@ -41,7 +41,7 @@ def create_and_get_path(families, lamb):
     dir_path = get_dir_path(families, lamb)
     try:
         makedirs(dir_path)
-    except FileExistsError:
+    except:
         pass
 
     return dir_path + "vector.py"
